@@ -9,10 +9,10 @@ a C implementation of the Markdown to HTML system.
 * `Part Separator`( --- ).
 * `Link` ( (name)[url] )
 * `Blockquote` ( > )
+* `Image` ( !(name)[url] )
 
 ## ToDo
 
-* `Image` ( !(name)[url] )
 * `List` ( * item )
 * `Italic Style` ( *some text* )
 * `Bold Style` ( **some text** )

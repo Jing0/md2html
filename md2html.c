@@ -5,7 +5,7 @@
  *
  *    Description:  a C implementation of the Markdown to HTML system.
  *
- *        Version:  0.2
+ *        Version:  0.3
  *        Created:  08/15/2014 14:01:15
  *       Revision:  none
  *       Compiler:  gcc
@@ -110,37 +110,37 @@ int onUrl(){
 	char ch, name[1000], url[1000];
 
 	while((ch = fgetc(in_fp)) != EOF){
-		if(ch == ']' || ch == '\n' || i > 999 ){
+		if( ch == ']' || ch == '\n' || i > 999 ){
 			break;
 		}
 		name[i++] = ch;
 	}
 	name[i] = '\0';
 
-	if( ch == '\n' || ch == EOF ){
+	if( ch != ']' ){
 		fprintf(out_fp, "[%s%c", name, ch);
 		return 1;
 	}
 
-	while((ch = fgetc(in_fp) ) == ' ');
-	if( ch == '(' ){
-		i = 0;
-		while((ch = fgetc(in_fp)) != EOF){
-			if(ch == ')' || ch == '\n'){
-				break;
-			}
-			url[i++] = ch;
-		}
-		url[i] = '\0';
+	while((ch = fgetc(in_fp)) == ' ');
 
-		if(ch == '\n' || ch == EOF){
-			fprintf(out_fp, "[%s](%s%c", name, url, ch);
-			return 3;
-		}
-	}
-	else{
+	if( ch != '(' ){
 		fprintf(out_fp, "[%s]%c", name, ch);
 		return 2;
+	}
+
+	i = 0;
+	while((ch = fgetc(in_fp)) != EOF){
+		if( ch == ')' || ch == '\n' || i > 999 ){
+			break;
+		}
+		url[i++] = ch;
+	}
+	url[i] = '\0';
+
+	if( ch != ')' ){
+		fprintf(out_fp, "[%s](%s%c", name, url, ch);
+		return 3;
 	}
 
 	fprintf(out_fp, "<a href=\"%s\">%s</a>", url, name);
@@ -171,6 +171,54 @@ int onHr(){
 	return 0;
 }
 
+int onImg(){
+	int i = 0;
+	char ch, name[1000], url[1000];
+
+	ch = fgetc(in_fp);
+	if( ch != '[' ){
+		fprintf(out_fp, "!%c", ch);
+		return 1;
+	}
+
+	while((ch = fgetc(in_fp)) != EOF){
+		if( ch == ']' || ch == '\n' || i > 999 ){
+			break;
+		}
+		name[i++] = ch;
+	}
+
+	name[i] = '\0';
+	if( ch == '\n' || ch == EOF ){
+		fprintf(out_fp, "![%s%c", name, ch);
+		return 2;
+	}
+	
+	while((ch = fgetc(in_fp)) == ' ');
+
+	if( ch != '(' ){
+		fprintf(out_fp, "![%s]%c", name, ch);
+		return 3;
+	}
+
+	i = 0;
+	while((ch = fgetc(in_fp)) != EOF){
+		if( ch == ')' || ch == '\n' || i > 999 ){
+			break;
+		}
+		url[i++] = ch;
+	}
+	url[i] = '\0';
+
+	if( ch != ')' ){
+		fprintf(out_fp, "![%s](%s%c", name, url, ch);
+		return 4;
+	}
+
+	fprintf(out_fp, "<img src=\"%s\" alt=\"%s\">", url, name);
+	return 0;
+}
+
 
 void convert(){
 	char ch;
@@ -181,8 +229,7 @@ void convert(){
 	add_head();
 	
 	while((ch = fgetc(in_fp)) != EOF){
-		if(isNewLine){
-			if( ch == '>' ||  ch == '#' || ch == '-' || ch == '*' ){
+		if(isNewLine && ( ch == '>' ||  ch == '#' || ch == '-' || ch == '*' )){
 				if( ch == '>' ){
 					if( isQuote == 0 ){
 						fprintf(out_fp, "<%s>\n", "blockquote" );
@@ -205,19 +252,11 @@ void convert(){
 					fputc(ch, out_fp);
 				}
 			}
-			else if( isQuote == 1 && ch != '>' ){
-				fprintf(out_fp, "</blockquote>\n");
-				isQuote = 0;
-			}
-			else{
-				if(ch != '\n'){
-					fprintf(out_fp, "<p>%c", ch);
-				}
-				else{
-					fputc(ch, out_fp);
-				}
-			}
+		else if( isNewLine && isQuote && ch != '>' ){
+			fprintf(out_fp, "</blockquote>\n");
+			isQuote = 0;
 		}
+		
 		// This is characters cannot display
 		/*
 		else if( ch == '&' || ch == '<' ){
@@ -230,10 +269,25 @@ void convert(){
 		}
 		*/
 		else if( ch == '[' ){
+			if( isNewLine ){
+				fprintf(out_fp, "<p>");
+			}
             onUrl();
         }
+		else if( ch == '!' ){
+			if( isNewLine ){
+				fprintf(out_fp, "<p>");
+			}
+
+			onImg();
+		}
         else if( ch != '\n'){
-            fputc(ch, out_fp);
+			if( isNewLine ){
+				fprintf(out_fp, "<p>%c", ch);
+			}
+			else{
+            	fputc(ch, out_fp);
+			}
         }
 
         if( ch != '\n' ){
