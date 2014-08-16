@@ -5,7 +5,7 @@
  *
  *    Description:  a C implementation of the Markdown to HTML system.
  *
- *        Version:  0.3
+ *        Version:  0.4
  *        Created:  08/15/2014 14:01:15
  *       Revision:  none
  *       Compiler:  gcc
