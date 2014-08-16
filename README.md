@@ -10,10 +10,10 @@ a C implementation of the Markdown to HTML system.
 * `Link` ( (name)[url] )
 * `Blockquote` ( > )
 * `Image` ( !(name)[url] )
+* `Italic Style` ( *some text* )
+* `Bold Style` ( **some text** )
 
 ## ToDo
 
 * `List` ( * item )
-* `Italic Style` ( *some text* )
-* `Bold Style` ( **some text** )
 * and so and forth

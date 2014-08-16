@@ -219,6 +219,179 @@ int onImg(){
 	return 0;
 }
 
+int onBold(){
+	int i = 0;
+	char ch, content[1000];
+
+	while((ch = fgetc(in_fp)) == ' ');
+	
+	if( ch == '*' ){
+		ch = fgetc(in_fp);
+		if( ch == '*' ){
+			fprintf(out_fp, "<strong></strong>");
+			return 1;
+		}
+		else{
+			fprintf(out_fp, "<i>*</i>");
+			return 2;
+		}
+	}
+	else if( ch == '\n' ){
+		fputc(ch, out_fp);
+		return 3;
+	}
+
+	content[i++] = ch;
+	while((ch = fgetc(in_fp)) != EOF){
+		if( ch == '*' || ch == '\n' || i > 999 ){
+			break;
+		}
+		content[i++] = ch;
+	}
+	content[i] = '\0';
+
+	if( ch != '*'){
+		fprintf(out_fp, "%s%c", content, ch);
+		return 4;
+	}
+	
+	ch = fgetc(in_fp);
+	if( ch != '*' ){
+		fprintf(out_fp, "<i>*%s</i>%c", content, ch);
+		return 5;
+	}
+
+	fprintf(out_fp, "<strong>%s</strong>", content);
+	return 0;
+}
+
+int onIorB(){
+	// this function deal with italic or bold style
+	// if what it deals with is bold style
+	// it will return -1
+	// if what it deals with is italic style
+	// it will return -2
+
+	int i = 0, state, isSpace;
+	char ch, content[1000];
+	
+	ch = fgetc(in_fp);
+	if( ch == '*' ){
+		state = onBold();
+		if( state != 0 ){
+			return state;
+		}
+		else{
+			return -1;
+		}
+	}
+	else if( ch == ' '){
+		isSpace = 1;
+	}
+	else{
+		isSpace = 0;
+		content[i++] = ch;
+	}
+	if( isSpace ){
+		while((ch = fgetc(in_fp)) == ' ' );
+	}
+	while((ch = fgetc(in_fp)) != EOF){
+		if( ch == '*' || ch == '\n' || i> 999){
+			break;
+		}
+		content[i++] = ch;
+	}
+	content[i] = '\0';
+
+	if( ch != '*' ){
+		fprintf(out_fp, "*%s%c", content, ch);
+		return 10;
+	}
+
+	fprintf(out_fp, "<i>%s</i>", content);
+	return -2;
+}
+int onList(){
+	int i;
+	char ch, item[500];
+	
+	fprintf(out_fp, "<ul>\n");
+	
+	while((ch = fgetc(in_fp)) == ' ');
+	
+	i = 0;
+	item[i++] = ch;
+	while((ch = fgetc(in_fp)) != EOF){
+		if( ch == '\n' || i > 499 ){
+			break;
+		}
+		item[i++] = ch;
+	}
+	item[i] = '\0';
+
+	fprintf(out_fp, "<li>%s</li>\n", item);
+	fprintf(out_fp, "</ul>\n");
+	return 0;
+}
+
+int onAster(){
+	// if what it deal with is bold style
+	// it will return -1
+	// and if what it deal with is italic style
+	// it will return -2
+	// and if what it deal with is a list
+	// it will return -3
+
+	int state, i = 0;
+	char ch, content[1000];
+
+	ch = fgetc(in_fp);
+	if( ch == ' ' ){
+		state = onList();
+		if( state == 0){
+			return -3;
+		}
+		else{
+			return state;
+		}
+	}
+	else if( ch == '*' ){
+		fputc('\n', out_fp);
+		state = onBold();
+		if( state == 0 ){
+			return -1;
+		}
+		else{
+			return state;
+		}
+	}
+	else if( ch == '\n' ){
+		fprintf(out_fp, "<p>*</p>\n");
+	}
+	content[i++] = ch;
+	
+	while((ch = fgetc(in_fp)) != EOF){
+		if( ch == '*' || ch == '\n' || i> 999){
+			break;
+		}
+		content[i++] = ch;
+	}
+	content[i] = '\0';
+
+	if( ch != '*' ){
+		if( ch == '\n' ){
+			fprintf(out_fp, "<p>*%s</p>\n", content);
+		}
+		else{
+			fprintf(out_fp, "<p>*%s%c", content, ch);
+		}
+		return 10;
+	}
+
+	fprintf(out_fp, "<p><i>%s</i>", content);
+	return -2;
+
+}
 
 void convert(){
 	char ch;
@@ -229,7 +402,7 @@ void convert(){
 	add_head();
 	
 	while((ch = fgetc(in_fp)) != EOF){
-		if(isNewLine && ( ch == '>' ||  ch == '#' || ch == '-' || ch == '*' )){
+		if( isNewLine && ( ch == '>' ||  ch == '#' || ch == '-' || ch == '*' )){
 				if( ch == '>' ){
 					if( isQuote == 0 ){
 						fprintf(out_fp, "<%s>\n", "blockquote" );
@@ -238,16 +411,22 @@ void convert(){
 				}
 				else if( ch == '#'){
 					onHeader();
-					ch = '\n';   // hack: set newline to 1;
+					ch = '\n';
 				}
 				else if( ch == '-' ){
 					onHr();
 				}
-				/*
 				else if( ch == '*' ){
-					onList("ul");
+					int state = onAster();
+					if( state == -3 ){
+						ch ='\n';
+					}
+					// if ch is a aterisk in a new line,
+					// it can be a list,
+					// or italic style
+					// or bold style
+					// or just common text
 				}
-				*/
 				else{
 					fputc(ch, out_fp);
 				}
@@ -280,6 +459,16 @@ void convert(){
 			}
 
 			onImg();
+		}
+		else if( ch == '*' ){
+			if( isNewLine ){
+				fprintf(out_fp, "<p>%c", ch);
+			}
+
+			onIorB();
+			// if ch is a asterish and not in a new line,
+			// it can be italic style
+			// or it can be bold style
 		}
         else if( ch != '\n'){
 			if( isNewLine ){
