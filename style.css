@@ -82,9 +82,7 @@ h6 {
 
 blockquote {
 	margin: 30px 0; }
-ul, li {
-	margin: 10px 0; }
-p, ol, dl, table, pre {
+p, ol, dl, ul, li, table, pre {
 	margin: 14px 0; }
 
 hr {
@@ -247,6 +245,14 @@ span.float-right > span {
 	margin: 13px auto 0;
 	text-align: right; }
 
+pre code {
+	margin: 0;
+	padding: 0;
+	color: #053DF5;
+	white-space: pre;
+	border: none;
+	background: transparent; }
+
 code, tt {
 	margin: 0 2px;
 	padding: 2px 5px;
@@ -256,26 +262,19 @@ code, tt {
 	background-color: #f7f7f9;
 	border-radius: 3px; }
 
-pre code {
-	margin: 0;
-	padding: 0;
-	white-space: pre;
-	border: none;
-	background: transparent; }
-
 .highlight pre {
 	background-color: #f8f8f8;
 	border: 1px solid #cccccc;
-	font-size: 13px;
+	font-size: 16px;
 	line-height: 19px;
 	overflow: auto;
 	padding: 6px 10px;
 	border-radius: 3px; }
 
 pre {
-	background-color: #f8f8f8;
+	background-color: #f5f5f5;
 	border: 1px solid #cccccc;
-	font-size: 13px;
+	font-size: 15px;
 	line-height: 19px;
 	overflow: auto;
 	padding: 6px 10px;
