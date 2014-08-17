@@ -13,11 +13,11 @@ a C implementation of the Markdown to HTML system.
 * `Italic Style` ( *some text* )
 * `Bold Style` ( **some text** )
 * `Code` ( ` some text ` )
+* `Code Block` ( '\t' some text )
+* `List` ( * item )
 
 ## ToDo
 
-* `Code Block` ( '\t' some text )
-* `List` ( * item )
 * and so and forth
 
 ##Examples
@@ -49,6 +49,14 @@ a C implementation of the Markdown to HTML system.
 	
 #### Code:
 	`some code`
+	
+#### Code Block:
+		some code
+		some code
+	
+#### Lists:
+	* item1
+	* item2
 
 
 

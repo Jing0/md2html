@@ -5,7 +5,7 @@
  *
  *    Description:  
  *
- *        Version:  0.5
+ *        Version:  0.6
  *        Created:  08/17/2014 16:48:02
  *       Revision:  none
  *       Compiler:  gcc
@@ -15,10 +15,14 @@
  * =====================================================================================
  */
 
+#ifndef MARKDOWN_H
+#define MARKDOWN_H
+
 #include <stdio.h>
 #include <string.h>
 
 #define CSS_PATH "./style.css"
+#define MAX 1000
 
 FILE *in_fp, *out_fp;
 char title[257];
@@ -33,6 +37,11 @@ int isHr = 0, ERROR_CODE = 0;
  * 3 cannot find style.css
  *
  */
+
+char *head1 = "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=yes\">\n\n";
+char *head2 = "<title>";
+char *head3 = "</title>\n</head>\n\n<body>\n";
+char *foot = "\n</body>\n</html>\n";
 
 int onHeader(){
 	int count = 1;
@@ -64,7 +73,7 @@ int onHeader(){
 
 int onUrl(){
 	int i = 0;
-	char ch, name[1000], url[1000];
+	char ch, name[MAX], url[MAX];
 
 	while((ch = fgetc(in_fp)) != EOF){
 		if( ch == ']' || ch == '\n' || i > 999 ){
@@ -130,7 +139,7 @@ int onHr(){
 
 int onImg(){
 	int i = 0;
-	char ch, name[1000], url[1000];
+	char ch, name[MAX], url[MAX];
 
 	ch = fgetc(in_fp);
 	if( ch != '[' ){
@@ -178,7 +187,7 @@ int onImg(){
 
 int onBold(){
 	int i = 0;
-	char ch, content[1000];
+	char ch, content[MAX];
 
 	while((ch = fgetc(in_fp)) == ' ');
 	
@@ -230,7 +239,7 @@ int onIorB(){
 	// it will return -2
 
 	int i = 0, state, isSpace;
-	char ch, content[1000];
+	char ch, content[MAX];
 	
 	ch = fgetc(in_fp);
 	if( ch == '*' ){
@@ -269,31 +278,38 @@ int onIorB(){
 	fprintf(out_fp, "<i>%s</i>", content);
 	return -2;
 }
-int onList(){
-	// There are still some problems with this function, obviously
+int onList(int sign){
 	int i;
-	char ch, item[1000];
-	
-	fprintf(out_fp, "<ul>\n");
-	
-	while((ch = fgetc(in_fp)) == ' ');
-	
-	i = 0;
-	item[i++] = ch;
-	while((ch = fgetc(in_fp)) != EOF){
-		if( ch == '\n' || i > 999 ){
-			break;
-		}
-		item[i++] = ch;
-	}
-	item[i] = '\0';
+	char ch, item[MAX];
 
-	fprintf(out_fp, "<li>%s</li>\n", item);
-	fprintf(out_fp, "</ul>\n");
+	if( sign == 1 ){
+		fprintf(out_fp, "<ul>\n");
+	}
+	
+	if( sign == 1 || sign == 2 ){
+		while((ch = fgetc(in_fp)) == ' ');
+
+		i = 0;
+		item[i++] = ch;
+		while((ch = fgetc(in_fp)) != EOF){
+			if( ch == '\n' || i > 999 ){
+				break;
+			}
+			item[i++] = ch;
+		}
+		item[i] = '\0';
+
+		fprintf(out_fp, "<li>%s</li>\n", item);
+	}
+
+	if( sign == 3 ){
+		fprintf(out_fp, "</ul>\n");
+	}
+
 	return 0;
 }
 
-int onAster(){
+int onAster(int sign){
 	// if what it deal with is bold style
 	// it will return -1
 	// and if what it deal with is italic style
@@ -302,12 +318,12 @@ int onAster(){
 	// it will return -3
 
 	int state, i = 0;
-	char ch, content[1000];
+	char ch, content[MAX];
 
 	ch = fgetc(in_fp);
 	if( ch == ' ' ){
-		state = onList();
-		if( state == 0){
+		state = onList(sign);
+		if( state == 0 ){
 			return -3;
 		}
 		else{
@@ -330,7 +346,7 @@ int onAster(){
 	content[i++] = ch;
 	
 	while((ch = fgetc(in_fp)) != EOF){
-		if( ch == '*' || ch == '\n' || i> 999){
+		if( ch == '*' || ch == '\n' || i> 999 ){
 			break;
 		}
 		content[i++] = ch;
@@ -354,7 +370,7 @@ int onAster(){
 
 int onCode(){
 	int i = 0, isSpace, isNewLine;
-	char ch, content[1000];
+	char ch, content[MAX];
 
 	ch = fgetc(in_fp);
 	if( ch == ' ' ){
@@ -395,34 +411,36 @@ int onCode(){
 	return 0;
 }
 
-/*
-int onBlock(){
+int onBlock(int sign){
 	// this function deals with code block
-	// but it cannot work well
-	int i = 0;
-	char ch, content[1000];
+	// it works the same as onList
+	int i;
+	char ch, content[MAX];
 
-	while((ch = fgetc(in_fp)) != EOF){
-		if( ch == '\n' ){
-			ch = fgetc(in_fp);
-			if( ch != '\t' ){
+	if( sign == 1 ){
+		fprintf(out_fp, "<pre>\n<code>\n");
+	}
+	
+	if( sign == 1 || sign == 2 ){
+
+		i = 0;
+		while((ch = fgetc(in_fp)) != EOF){
+			if( ch == '\n' || i > 999 ){
 				break;
 			}
+			content[i++] = ch;
 		}
-		content[i++] = ch;
+		content[i] = '\0';
+
+		fprintf(out_fp, "%s\n", content);
 	}
-	content[i] = '\0';
 
-	fprintf(out_fp, "<pre>%s</pre>\n<p>%c", content, ch);
+	if( sign == 3 ){
+		fprintf(out_fp, "</code>\n</pre>\n");
+	}
+
 	return 0;
 }
-*/
-
-/*
-int onNewLine(char parameter){
-	return 0;
-}
-*/
 
 void add_style(){
 	FILE *css_fp;
@@ -430,8 +448,7 @@ void add_style(){
 
 	fprintf(out_fp, "%s", "<style>\n");
 
-	css_fp = fopen(style_file, "rw+");
-	if( css_fp == NULL ){
+	if( (css_fp = fopen(style_file, "rw+")) == NULL ){
 		ERROR_CODE = 3;
 		printf("\nerror!\nERROR_CODE:%d\tcan't open style file(%s)\n", ERROR_CODE, style_file);
 	}
@@ -445,60 +462,81 @@ void add_style(){
 }
 
 void add_head(){
-	char *head1 = "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=yes\">\n\n";
-	char *head2 = "<title>";
-	char *head3 = "</title>\n</head>\n\n<body>\n";
-
 	fprintf(out_fp, "%s", head1);
-
 	add_style();
-		
 	fprintf(out_fp, "%s%s%s", head2, title, head3);
 }
 
 void add_foot(){
-	char *foot = "\n</body>\n</html>\n";
 	fprintf(out_fp, "%s", foot);
 }
 
 void convert(){
 	char ch;
-	int isNewLine, isQuote, isCode;
+	int isNewLine, isQuote, isCode, isList, isBlock;
 	isNewLine = 1;
-	isQuote = isCode = 0;
+	isQuote = isCode = isList = isBlock = 0;
 
 	add_head();
 	
 	while((ch = fgetc(in_fp)) != EOF){
-		if( isNewLine && ( ch == '>' ||  ch == '#' || ch == '-' || ch == '*' )){
-				if( ch == '>' ){
-					if( isQuote == 0 ){
-						fprintf(out_fp, "<blockquote>\n");
-						isQuote = 1;
-					}
-				}
-				else if( ch == '#'){
-					onHeader();
-					ch = '\n';
-				}
-				else if( ch == '-' ){
-					onHr();
-				}
-				else if( ch == '*' ){
-					int state = onAster();
-					if( state == -3 ){
-						ch ='\n';
-					}
-					// if ch is a aterisk in a new line,
-					// it can be a list,
-					// or italic style
-					// or bold style
-					// or just common text
-				}
-				else{
-					fputc(ch, out_fp);
+		if( isNewLine && ch != '*' && isList ){
+			onList(3);
+			isList = 0;
+		}
+		if( isNewLine && ch != '\t' && isBlock ){
+			onBlock(3);
+			isBlock = 0;
+		}
+
+		if( isNewLine && ( ch == '>' ||  ch == '#' || ch == '-' || ch == '*' || ch == '\t' ) ){
+			if( ch == '>' ){
+				if( isQuote == 0 ){
+					fprintf(out_fp, "<blockquote>\n");
+					isQuote = 1;
 				}
 			}
+			else if( ch == '#'){
+				onHeader();
+				ch = '\n';
+			}
+			else if( ch == '-' ){
+				onHr();
+			}
+			else if( ch == '*' ){
+				int state;
+				if( isList == 0 ){
+					state = onAster(1);
+				}
+				else{
+					state = onAster(2);
+				}
+
+				if( state == -3 ){ // if it is a list
+					ch ='\n';
+					isList = 1;
+				}
+				// if ch is a aterisk in a new line,
+				// it can be a list,
+				// or italic style
+				// or bold style
+				// or just common text
+			}
+			else if( ch == '\t' ){
+				if( isBlock == 0 ){
+					onBlock(1);
+				}
+				else{
+					onBlock(2);
+				}
+				ch = '\n';
+				isBlock = 1;
+				isNewLine = 1;
+			}
+			else{
+				fputc(ch, out_fp);
+			}
+		}
 		else if( isNewLine && isQuote && ch != '>' ){
 			fprintf(out_fp, "</blockquote>\n");
 			isQuote = 0;
@@ -570,3 +608,4 @@ void convert(){
 	add_foot();
 }
 
+#endif // MARKDOWN_H

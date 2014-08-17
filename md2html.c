@@ -5,7 +5,7 @@
  *
  *    Description:  a C implementation of the Markdown to HTML system.
  *
- *        Version:  0.5
+ *        Version:  0.6
  *        Created:  08/15/2014 14:01:15
  *       Revision:  none
  *       Compiler:  gcc
@@ -17,13 +17,13 @@
 
 #include "markdown.h"
 
-void get_dest(char *file_dest){
+void get_input(char *file_dest){
 	printf("Please input the directory of the target file:\n");
 	scanf("%s", file_dest);
 }
 
 //get the filename of output file
-void new_name(char *new, char *old){
+void name_output(char *new, char *old, const char *format){
 	int dot, len = strlen(old);
 
 	strcpy(new, old);
@@ -35,31 +35,44 @@ void new_name(char *new, char *old){
 	for(--dot; new[dot] != '/' && dot >= 0; dot--);
 	strcpy(title, new + dot + 1);
 	
-	strcat(new, ".html");
+	strcat(new, format);
+}
+
+int open_file(char *file){
+	if((in_fp = fopen(file, "r")) == NULL){
+		ERROR_CODE = 1;
+		printf("\nerror!\nERROR_CODE:%d\tcan't open input file(%s)", ERROR_CODE, file);
+		return 1;
+	}
+	return 0;
+}
+
+int create_file(char *file){
+	if((out_fp = fopen(file, "w")) == NULL){
+		ERROR_CODE = 2;
+		printf("\nerror!\nERROR_CODE:%d\tcan't create output file(%s)", ERROR_CODE, file);
+		return 1;
+	}
+	return 0;
 }
 
 int main(){
-	char in_file[100], out_file[100];
+	char input[100], output[100];
 
-	get_dest(in_file);
-	new_name(out_file, in_file);
+	// get the file address of input file
+	get_input(input);
+	// name the output file
+	name_output(output, input, ".html");
 
-	if((in_fp = fopen(in_file, "r")) == NULL){
-		ERROR_CODE = 1;
-		printf("\nerror!\nERROR_CODE:%d\tcan't open input file(%s)", ERROR_CODE, in_file);
-		return 1;
-	}
-	if((out_fp = fopen(out_file, "w")) == NULL){
-		ERROR_CODE = 2;
-		printf("\nerror!\nERROR_CODE:%d\tcan't create output file(%s)", ERROR_CODE, out_file);
-		return 2;
-	}
-
+	open_file(input);
+	create_file(output);
+	
 	convert();
 
 	if( !ERROR_CODE ){
 		printf("\nDone!\n");
 	}
+
 	fclose(in_fp);
 	fclose(out_fp);
 
