@@ -5,7 +5,7 @@
  *
  *    Description:  a C implementation of the Markdown to HTML system.
  *
- *        Version:  0.4
+ *        Version:  0.45
  *        Created:  08/15/2014 14:01:15
  *       Revision:  none
  *       Compiler:  gcc
@@ -294,6 +294,7 @@ int onIorB(){
 	}
 	if( isSpace ){
 		while((ch = fgetc(in_fp)) == ' ' );
+		content[i++] = ch;
 	}
 	while((ch = fgetc(in_fp)) != EOF){
 		if( ch == '*' || ch == '\n' || i> 999){
@@ -393,6 +394,49 @@ int onAster(){
 
 }
 
+int onCode(){
+	int i = 0, isSpace, isNewLine;
+	char ch, content[1000];
+
+	ch = fgetc(in_fp);
+	if( ch == ' '){
+		isSpace = 1;
+	}
+	else{
+		isSpace = 0;
+		content[i++] = ch;
+	}
+	if( isSpace ){
+		while((ch = fgetc(in_fp)) == ' ' );
+		content[i++] = ch;
+	}
+
+	while((ch = fgetc(in_fp)) != EOF){
+		if( isNewLine && ch == '\n' ){
+			break;
+		}
+		else if( !isNewLine && ch == '\n' ){
+			isNewLine = 1;
+		}
+		else{
+			isNewLine = 0;
+			if( ch == '`' || i > 999 ){
+				break;
+			}
+		}
+		content[i++] = ch;
+	}
+	content[i] = '\0';
+
+	if( ch != '`' ){
+		fprintf(out_fp, "`%s%c", content, ch);
+		return 1;
+	}
+
+	fprintf(out_fp, "<code>%s</code>", content);
+	return 0;
+}
+
 void convert(){
 	char ch;
 	int isNewLine, isQuote, isCode;
@@ -459,6 +503,13 @@ void convert(){
 			}
 
 			onImg();
+		}
+		else if( ch == '`' ){
+			if( isNewLine ){
+				fprintf(out_fp, "<p>");
+			}
+
+			onCode();
 		}
 		else if( ch == '*' ){
 			if( isNewLine ){

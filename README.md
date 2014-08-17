@@ -12,6 +12,7 @@ a C implementation of the Markdown to HTML system.
 * `Image` ( !(name)[url] )
 * `Italic Style` ( *some text* )
 * `Bold Style` ( **some text** )
+* `Code` ( ` some text ` )
 
 ## ToDo
 

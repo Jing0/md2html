@@ -10,6 +10,14 @@
 * 白菜
 * 黄瓜
 
+`Here is a piece of Python Code`
+
+`print "Hello World!"`
+
+`This is right
+code`
+
+
 *我的* **博客**：[Jackie's Blog](http://jackiekuo.com)
 
 ## 两只老虎
