@@ -65,7 +65,8 @@ h1 {
 
 h2 {
 	font-size: 27px;
-	color: black; }
+	color: black;
+	border-bottom: 1px solid #ddd; }
 
 h3 {
 	font-size: 21px; }
