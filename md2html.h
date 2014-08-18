@@ -1,11 +1,11 @@
 /*
  * =====================================================================================
  *
- *       Filename:  markdown.h
+ *       Filename:  md2html.h
  *
- *    Description:  
+ *    Description:	a C implementation of the Markdown to HTML system. 
  *
- *        Version:  0.6
+ *        Version:  0.61
  *        Created:  08/17/2014 16:48:02
  *       Revision:  none
  *       Compiler:  gcc
@@ -15,8 +15,8 @@
  * =====================================================================================
  */
 
-#ifndef MARKDOWN_H
-#define MARKDOWN_H
+#ifndef MD2HTML_H
+#define MD2HTML_H
 
 #include <stdio.h>
 #include <string.h>
@@ -557,8 +557,8 @@ void convert(){
 			if( isNewLine ){
 				fprintf(out_fp, "<p>");
 			}
-            onUrl();
-        }
+			onUrl();
+		}
 		else if( ch == '!' ){
 			if( isNewLine ){
 				fprintf(out_fp, "<p>");
@@ -602,10 +602,61 @@ void convert(){
 			isNewLine = 1;
 			isHr = 0;
         }
-
 	}
 
 	add_foot();
 }
 
-#endif // MARKDOWN_H
+
+void get_input(char *file_dest){
+	printf("Please input the directory of the target file:\n");
+	scanf("%s", file_dest);
+}
+
+//get the filename of output file
+void name_output(char *new, char *old, const char *format){
+	int dot, len = strlen(old);
+
+	strcpy(new, old);
+	
+	for(dot = len-1; new[dot] != '.'; dot--);
+	new[dot] = '\0';
+
+	//get filename
+	for(--dot; new[dot] != '/' && dot >= 0; dot--);
+	strcpy(title, new + dot + 1);
+	
+	strcat(new, format);
+}
+
+int open_file(char *file){
+	if((in_fp = fopen(file, "r")) == NULL){
+		ERROR_CODE = 1;
+		printf("\nerror!\nERROR_CODE:%d\tcan't open input file(%s)", ERROR_CODE, file);
+		return 1;
+	}
+	return 0;
+}
+
+int create_file(char *file){
+	if((out_fp = fopen(file, "w")) == NULL){
+		ERROR_CODE = 2;
+		printf("\nerror!\nERROR_CODE:%d\tcan't create output file(%s)", ERROR_CODE, file);
+		return 1;
+	}
+	return 0;
+}
+
+void close(){
+	
+	if( !ERROR_CODE ){
+		printf("\nDone!\n");
+	}
+
+	fclose(in_fp);
+	fclose(out_fp);
+	in_fp = NULL;
+	out_fp = NULL;
+}
+
+#endif // MD2HTML_H
