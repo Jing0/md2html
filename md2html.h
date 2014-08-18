@@ -5,7 +5,7 @@
  *
  *    Description:	a C implementation of the Markdown to HTML system. 
  *
- *        Version:  0.62
+ *        Version:  0.63
  *        Created:  08/17/2014 16:48:02
  *       Revision:  none
  *       Compiler:  gcc
@@ -430,6 +430,18 @@ int onCode(){
 	return 0;
 }
 
+int onQuote(int sign){
+	// this function deals with blockquote
+	
+	if( sign == 1 ){
+		fprintf(out_fp, "<blockquote>\n");
+	}
+	if( sign == 2 ){
+		fprintf(out_fp, "\n</blockquote>\n");
+	}
+	return 0;
+}
+
 int onBlock(int sign){
 	// this function deals with code block
 	// it works the same as onList
@@ -515,11 +527,15 @@ void convert(){
 			onBlock(3);
 			isBlock = 0;
 		}
+		if( isNewLine && ch != '>' && isQuote ){
+			onQuote(2);
+			isQuote = 0;
+		}
 
 		if( isNewLine && ( ch == '>' ||  ch == '#' || ch == '-' || ch == '*' || ch == '\t' ) ){
 			if( ch == '>' ){
 				if( isQuote == 0 ){
-					fprintf(out_fp, "<blockquote>\n");
+					onQuote(1);
 					isQuote = 1;
 				}
 			}
@@ -564,22 +580,6 @@ void convert(){
 				fputc(ch, out_fp);
 			}
 		}
-		else if( isNewLine && isQuote && ch != '>' ){
-			fprintf(out_fp, "</blockquote>\n");
-			isQuote = 0;
-		}
-		
-		// This is characters cannot display
-		/*
-		else if( ch == '&' || ch == '<' ){
-			if( ch == '&' ){
-				fprintf(out_fp, "&amp;");
-			}
-			else{
-				fprintf(out_fp, "&lt;");
-			}
-		}
-		*/
 		else if( ch == '[' ){
 			if( isNewLine ){
 				fprintf(out_fp, "<p>");
@@ -610,8 +610,8 @@ void convert(){
 			// it can be italic style
 			// or it can be bold style
 		}
-        else if( ch != '\n'){
-			if( isNewLine ){
+        else if( ch != '\n' ){
+			if( isNewLine && !isQuote ){
 				fprintf(out_fp, "<p>%c", ch);
 			}
 			else{
@@ -623,7 +623,7 @@ void convert(){
             isNewLine = 0;
         }
         else{
-			if( !isHr && !isNewLine ){
+			if( !isHr && !isQuote && !isNewLine ){
 				fprintf(out_fp, "</p>\n");
 			}
 			isNewLine = 1;
@@ -658,7 +658,7 @@ void name_output(char *new, char *old, const char *format){
 }
 
 int open_file(char *file){
-	if((in_fp = fopen(file, "r")) == NULL){
+	if( (in_fp = fopen(file, "r")) == NULL ){
 		ERROR_CODE = 1;
 		printf("\nerror!\nERROR_CODE:%d\tcan't open input file(%s)", ERROR_CODE, file);
 		return 1;
@@ -667,7 +667,7 @@ int open_file(char *file){
 }
 
 int create_file(char *file){
-	if((out_fp = fopen(file, "w")) == NULL){
+	if( (out_fp = fopen(file, "w")) == NULL ){
 		ERROR_CODE = 2;
 		printf("\nerror!\nERROR_CODE:%d\tcan't create output file(%s)", ERROR_CODE, file);
 		return 1;
