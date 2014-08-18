@@ -5,7 +5,7 @@
  *
  *    Description:	a C implementation of the Markdown to HTML system. 
  *
- *        Version:  0.61
+ *        Version:  0.62
  *        Created:  08/17/2014 16:48:02
  *       Revision:  none
  *       Compiler:  gcc
@@ -368,8 +368,17 @@ int onAster(int sign){
 
 }
 
+void onSpecialChar(char ch){
+	if( ch == '&' ){
+		fprintf(out_fp, "&amp;");
+	}
+	else if( ch == '<' ){
+		fprintf(out_fp, "&lt;");
+	}
+}
+
 int onCode(){
-	int i = 0, isSpace, isNewLine;
+	int i = 0, j, isSpace, isNewLine;
 	char ch, content[MAX];
 
 	ch = fgetc(in_fp);
@@ -407,14 +416,24 @@ int onCode(){
 		return 1;
 	}
 
-	fprintf(out_fp, "<code>%s</code>", content);
+	fprintf(out_fp, "<code>");
+	for(j=0; j<i; j++){
+		if( content[j] == '&' || content[j] == '<' ){
+			onSpecialChar(content[j]);
+		}
+		else{
+			fputc(content[j], out_fp);
+		}
+	}
+
+	fprintf(out_fp, "</code>");
 	return 0;
 }
 
 int onBlock(int sign){
 	// this function deals with code block
 	// it works the same as onList
-	int i;
+	int i, j;
 	char ch, content[MAX];
 
 	if( sign == 1 ){
@@ -432,7 +451,15 @@ int onBlock(int sign){
 		}
 		content[i] = '\0';
 
-		fprintf(out_fp, "%s\n", content);
+		for(j=0; j<i; j++){
+			if( content[j] == '&' || content[j] == '<' ){
+				onSpecialChar(content[j]);
+			}
+			else{
+				fputc(content[j], out_fp);
+			}
+		}
+		fputc('\n', out_fp);
 	}
 
 	if( sign == 3 ){
@@ -557,8 +584,8 @@ void convert(){
 			if( isNewLine ){
 				fprintf(out_fp, "<p>");
 			}
-			onUrl();
-		}
+            onUrl();
+        }
 		else if( ch == '!' ){
 			if( isNewLine ){
 				fprintf(out_fp, "<p>");
@@ -602,6 +629,7 @@ void convert(){
 			isNewLine = 1;
 			isHr = 0;
         }
+
 	}
 
 	add_foot();
