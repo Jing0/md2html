@@ -5,7 +5,7 @@
  *
  *    Description:	a C implementation of the Markdown to HTML system. 
  *
- *        Version:  0.63
+ *        Version:  0.64
  *        Created:  08/17/2014 16:48:02
  *       Revision:  none
  *       Compiler:  gcc
@@ -43,35 +43,16 @@ char *head2 = "<title>";
 char *head3 = "</title>\n</head>\n\n<body>\n";
 char *foot = "\n</body>\n</html>\n";
 
-int onHeader(){
-	int count = 1;
-	char ch;
-
-	while((ch = fgetc(in_fp) ) == '#'){
-		++count;
-	}
-
-	if( count > 6 ){
-		while(count--){
-			fprintf(out_fp, "#");
-		}
-		fprintf(out_fp, "%c", ch);
-		return 1;
-	}
-
-	fprintf(out_fp, "<h%d>%c", count, ch);
-
-	ch = fgetc(in_fp);
-	while(ch != '\n' && ch != EOF){
-		fprintf(out_fp, "%c", ch);
-		ch = fgetc(in_fp);
-	}
-
-	fprintf(out_fp, "</h%i>\n", count);
-	return 0;
-}
 
 int onUrl(){
+	// this function deals with url
+	// if what it deals with is a url
+	// it will return 0
+	// if what it deals with is not a url
+	// it will return from 1 to 5
+	// if what it deals with is not a url and onUrl gets a '\n'
+	// it will return 2 or 4
+
 	int i = 0;
 	char ch, name[MAX], url[MAX];
 
@@ -91,8 +72,14 @@ int onUrl(){
 	while((ch = fgetc(in_fp)) == ' ');
 
 	if( ch != '(' ){
-		fprintf(out_fp, "[%s]%c", name, ch);
-		return 2;
+		if( ch == '\n' ){
+			fprintf(out_fp, "[%s]", name);
+			return 2;
+		}
+		else{
+			fprintf(out_fp, "[%s]%c", name, ch);
+			return 3;
+		}
 	}
 
 	i = 0;
@@ -105,11 +92,60 @@ int onUrl(){
 	url[i] = '\0';
 
 	if( ch != ')' ){
-		fprintf(out_fp, "[%s](%s%c", name, url, ch);
-		return 3;
+		if( ch == '\n' ){
+			fprintf(out_fp, "[%s](%s", name, url);
+			return 4;
+		}
+		else{
+			fprintf(out_fp, "[%s](%s%c", name, url, ch);
+			return 5;
+		}
 	}
 
 	fprintf(out_fp, "<a href=\"%s\">%s</a>", url, name);
+	return 0;
+}
+
+int onHeader(){
+	// this function deals with Header
+	// from <h1> to <h6>
+	// if what it deals with is a header
+	// it will return 0
+	// if what it deals with is not a header
+	// it will return 1
+
+	int count = 1, onUrlstate;
+	char ch;
+
+	while((ch = fgetc(in_fp) ) == '#'){
+		++count;
+	}
+
+	if( count > 6 ){
+		while(count--){
+			fprintf(out_fp, "#");
+		}
+		fprintf(out_fp, "%c", ch);
+		return 1;
+	}
+
+	fprintf(out_fp, "<h%d>", count);
+
+	while(ch != '\n' && ch != EOF){
+		if( ch == '[' ){
+			onUrlstate = onUrl();
+			if( onUrlstate == 2 || onUrlstate == 4 ){
+				// there is a '\n'
+				break;
+			}
+		}
+		else{
+			fprintf(out_fp, "%c", ch);
+		}
+		ch = fgetc(in_fp);
+	}
+
+	fprintf(out_fp, "</h%i>\n", count);
 	return 0;
 }
 
