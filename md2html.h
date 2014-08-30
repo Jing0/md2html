@@ -5,7 +5,7 @@
  *
  *    Description:	a C implementation of the Markdown to HTML system. 
  *
- *        Version:  0.64
+ *        Version:  0.65
  *        Created:  08/17/2014 16:48:02
  *       Revision:  none
  *       Compiler:  gcc
@@ -117,7 +117,7 @@ int onHeader(){
 	int count = 1, onUrlstate;
 	char ch;
 
-	while((ch = fgetc(in_fp) ) == '#'){
+	while((ch = fgetc(in_fp)) == '#'){
 		++count;
 	}
 
@@ -315,27 +315,33 @@ int onIorB(){
 	return -2;
 }
 int onList(int sign){
-	int i;
-	char ch, item[MAX];
+	int onUrlstate;
+	char ch;
 
 	if( sign == 1 ){
 		fprintf(out_fp, "<ul>\n");
 	}
 	
 	if( sign == 1 || sign == 2 ){
-		while((ch = fgetc(in_fp)) == ' ');
+		fprintf(out_fp, "<li>");
+		//while((ch = fgetc(in_fp)) == ' ');
 
-		i = 0;
-		item[i++] = ch;
-		while((ch = fgetc(in_fp)) != EOF){
-			if( ch == '\n' || i > 999 ){
-				break;
+		ch = fgetc(in_fp);
+		while(ch != '\n' && ch != EOF){
+			if( ch == '[' ){
+				onUrlstate = onUrl();
+				if( onUrlstate == 2 || onUrlstate == 4 ){
+					// there is a '\n'
+					break;
+				}
 			}
-			item[i++] = ch;
+			else{
+				fprintf(out_fp, "%c", ch);
+			}
+			ch = fgetc(in_fp);
 		}
-		item[i] = '\0';
 
-		fprintf(out_fp, "<li>%s</li>\n", item);
+		fprintf(out_fp, "</li>\n");
 	}
 
 	if( sign == 3 ){
