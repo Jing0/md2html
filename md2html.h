@@ -5,7 +5,7 @@
  *
  *    Description:	a C implementation of the Markdown to HTML system. 
  *
- *        Version:  0.66
+ *        Version:  1.0
  *        Created:  08/17/2014 16:48:02
  *       Revision:  none
  *       Compiler:  gcc
@@ -20,12 +20,12 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "lex.h"
 
 #define CSS_PATH "./style.css"
 #define MAX 1000
 
-char title[257];
-int isHr = 0, ERROR_CODE = 0;
+int isHr = 0;
 
 /*
  * ERROR_CODE
@@ -36,27 +36,6 @@ int isHr = 0, ERROR_CODE = 0;
  * 3 cannot find style.css
  *
  */
-
-static const char *head1 =
-	"<!DOCTYPE html>\n"
-	"<html>\n"
-	"<head>\n"
-	"<meta charset=\"utf-8\">\n"
-	"<meta name=\"viewport\" "
-	"content=\"width=device-width, initial-scale=1.0, user-scalable=yes\">\n\n";
-
-static const char *head2 =
-	"<title>";
-
-static const char *head3 =
-	"</title>\n"
-	"</head>\n\n"
-	"<body>\n";
-
-static const char *foot =
-	"\n</body>\n"
-	"</html>\n";
-
 
 int onUrl(FILE *out_fp, FILE *in_fp) {
 	// this function deals with url
@@ -134,7 +113,6 @@ int onHeader(FILE *out_fp, FILE *in_fp) {
 	while ((ch = fgetc(in_fp)) == '#') {
 		++count;
 	}
-
 	if (count > 6) {
 		while (count--) {
 			fprintf(out_fp, "#");
@@ -172,7 +150,6 @@ int onHr(FILE *out_fp, FILE *in_fp) {
 		++count;
 		ch = fgetc(in_fp);
 	}
-
 	if (count >= 3) {
 		fprintf(out_fp, "\n<hr/>\n");
 		isHr = 1;
@@ -196,7 +173,6 @@ int onImg(FILE *out_fp, FILE *in_fp) {
 		fprintf(out_fp, "!%c", ch);
 		return 1;
 	}
-
 	while ((ch = fgetc(in_fp)) != EOF) {
 		if (ch == ']' || ch == '\n' || i > 999) {
 			break;
@@ -211,7 +187,6 @@ int onImg(FILE *out_fp, FILE *in_fp) {
 	}
 	
 	while ((ch = fgetc(in_fp)) == ' ') {}
-
 	if (ch != '(') {
 		fprintf(out_fp, "![%s]%c", name, ch);
 		return 3;
@@ -240,7 +215,6 @@ int onBold(FILE *out_fp, FILE *in_fp) {
 	char ch, content[MAX];
 
 	while ((ch = fgetc(in_fp)) == ' ') {}
-	
 	if (ch == '*') {
 		ch = fgetc(in_fp);
 		if (ch == '*') {
@@ -256,7 +230,6 @@ int onBold(FILE *out_fp, FILE *in_fp) {
 		fputc(ch, out_fp);
 		return 3;
 	}
-
 	content[i++] = ch;
 	while ((ch = fgetc(in_fp)) != EOF) {
 		if (ch == '*' || ch == '\n' || i > 999) {
@@ -473,7 +446,6 @@ int onCode(FILE *out_fp, FILE *in_fp) {
 		fprintf(out_fp, "`%s%c", content, ch);
 		return 1;
 	}
-
 	fprintf(out_fp, "<code>");
 	for (j=0; j<i; j++) {
 		if (content[j] == '&' || content[j] == '<') {
@@ -490,84 +462,79 @@ int onCode(FILE *out_fp, FILE *in_fp) {
 
 int onQuote(FILE *out_fp, const int sign) {
 	// this function deals with blockquote
-	
 	if (sign == 1) {
 		fprintf(out_fp, "<blockquote>\n");
 	}
-	if (sign == 2) {
+	else if (sign == 2) {
 		fprintf(out_fp, "\n</blockquote>\n");
 	}
 	return 0;
 }
 
-int onBlock(FILE *out_fp, FILE *in_fp, const int sign) {
+int onBlock(FILE *out_fp, FILE *in_fp,
+		const int sign, const int code_color_scheme) {
 	// this function deals with code block
 	// it works the same as onList
 	int i, j;
 	char ch, content[MAX];
 
-	if (sign == 1) {
-		fprintf(out_fp, "<pre>\n<code>\n");
+	if (code_color_scheme) {
+		if (sign == 1) {
+			fprintf(out_fp, "\n<div class=\"code\">\n");
+		}
+		if (sign == 1 || sign == 2) {
+			i = 0;
+			while ((ch = fgetc(in_fp)) != EOF) {
+				if (ch == '\n' || i > 999) {
+					break;
+				}
+				content[i++] = ch;
+			}
+			if (ch == '\n' && i < 1000) {
+				content[i++] = '\n';
+			}
+			content[i] = '\0';
+
+			code_token(out_fp, content, WRITE_AS_HTML, code_color_scheme);
+		}
+		if (sign == 3) {
+			fprintf(out_fp, "\n</div>\n");
+		}
 	}
+	else {
+		if (sign == 1) {
+			fprintf(out_fp, "<pre>\n<code>\n");
+		}
 	
-	if (sign == 1 || sign == 2) {
-		i = 0;
-		while ((ch = fgetc(in_fp)) != EOF) {
-			if (ch == '\n' || i > 999) {
-				break;
+		if (sign == 1 || sign == 2) {
+			i = 0;
+			while ((ch = fgetc(in_fp)) != EOF) {
+				if (ch == '\n' || i > 999) {
+					break;
+				}
+				content[i++] = ch;
 			}
-			content[i++] = ch;
+			content[i] = '\0';
+
+			for (j=0; j<i; j++) {
+				if (content[j] == '&' || content[j] == '<') {
+					onSpecialChar(out_fp, content[j]);
+				}
+				else {
+					fputc(content[j], out_fp);
+				}
+			}
+			fputc('\n', out_fp);
 		}
-		content[i] = '\0';
 
-		for (j=0; j<i; j++) {
-			if (content[j] == '&' || content[j] == '<') {
-				onSpecialChar(out_fp, content[j]);
-			}
-			else {
-				fputc(content[j], out_fp);
-			}
+		if (sign == 3) {
+			fprintf(out_fp, "</code>\n</pre>\n");
 		}
-		fputc('\n', out_fp);
 	}
-
-	if (sign == 3) {
-		fprintf(out_fp, "</code>\n</pre>\n");
-	}
-
 	return 0;
 }
 
-void add_style(FILE *out_fp, const char *css_file) {
-	FILE *css_fp;
-	char ch;
-
-	fprintf(out_fp, "%s", "<style>\n");
-
-	if ((css_fp = fopen(css_file, "rw+")) == NULL) {
-		ERROR_CODE = 3;
-		printf("\nerror!\nERROR_CODE:%d\tcan't open style file(%s)\n", ERROR_CODE, css_file);
-	}
-	else {
-		while ((ch = fgetc(css_fp)) != EOF) {
-			fputc(ch, out_fp);
-		}
-	}
-
-	fprintf(out_fp, "%s", "\n</style>\n");
-}
-
-void add_head(FILE *out_fp, const char *css_file) {
-	fprintf(out_fp, "%s", head1);
-	add_style(out_fp, css_file);
-	fprintf(out_fp, "%s%s%s", head2, title, head3);
-}
-
-void add_foot(FILE *out_fp) {
-	fprintf(out_fp, "%s", foot);
-}
-
-void mdparser(FILE *out_fp, FILE *in_fp) {
+void mdparser(FILE *out_fp, FILE *in_fp, const int code_color_scheme) {
 	char ch;
 	int isNewLine, isQuote, isCode, isList, isBlock;
 	isNewLine = 1;
@@ -581,7 +548,7 @@ void mdparser(FILE *out_fp, FILE *in_fp) {
 			isList = 0;
 		}
 		if (isNewLine && ch != '\t' && isBlock) {
-			onBlock(out_fp, in_fp, 3);
+			onBlock(out_fp, in_fp, 3, code_color_scheme);
 			isBlock = 0;
 		}
 		if (isNewLine && ch != '>' && isQuote) {
@@ -625,10 +592,10 @@ void mdparser(FILE *out_fp, FILE *in_fp) {
 			}
 			else if (ch == '\t') {
 				if (isBlock == 0) {
-					onBlock(out_fp, in_fp, 1);
+					onBlock(out_fp, in_fp, 1, code_color_scheme);
 				}
 				else {
-					onBlock(out_fp, in_fp, 2);
+					onBlock(out_fp, in_fp, 2, code_color_scheme);
 				}
 				ch = '\n';
 				isBlock = 1;
@@ -686,56 +653,6 @@ void mdparser(FILE *out_fp, FILE *in_fp) {
         }
 	}
 	add_foot(out_fp);
-}
-
-
-void get_input(char *file_dest) {
-	printf("Please input the directory of the target file:\n");
-	scanf("%s", file_dest);
-}
-
-//get the filename of output file
-void name_output(char *new, char *old, const char *format) {
-	int dot, len = (int)strlen(old);
-
-	strcpy(new, old);
-	
-	for (dot = len-1; new[dot] != '.'; dot--) {}
-	new[dot] = '\0';
-
-	//get filename
-	for (--dot; new[dot] != '/' && dot >= 0; dot--) {}
-	strcpy(title, new + dot + 1);
-	
-	strcat(new, format);
-}
-
-int open_file(FILE **in_fp, const char *file) {
-	if ((*in_fp = fopen(file, "r")) == NULL) {
-		ERROR_CODE = 1;
-		printf("\nerror!\nERROR_CODE:%d\tcan't open input file(%s)", ERROR_CODE, file);
-		return 1;
-	}
-	return 0;
-}
-
-int create_file(FILE **out_fp, const char *file) {
-	if ((*out_fp = fopen(file, "w")) == NULL) {
-		ERROR_CODE = 2;
-		printf("\nerror!\nERROR_CODE:%d\tcan't create output file(%s)", ERROR_CODE, file);
-		return 1;
-	}
-	return 0;
-}
-
-void close_files(FILE **fpa, FILE **fpb) {
-	if (!ERROR_CODE) {
-		printf("\nDone!\n");
-	}
-	fclose(*fpa);
-	fclose(*fpb);
-	*fpa = NULL;
-	*fpb = NULL;
 }
 
 #endif // MD2HTML_H
