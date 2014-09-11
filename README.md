@@ -57,7 +57,3 @@ a C implementation of the Markdown to HTML system.
 #### Lists:
 	* item1
 	* item2
-
-
-
-
