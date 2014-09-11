@@ -1,6 +1,6 @@
 # MD2HTML
 
-a C implementation of the Markdown to HTML system.
+a C implementation of the Markdown to HTML system with code highlighting support.
 
 ## Supported
 
@@ -15,6 +15,10 @@ a C implementation of the Markdown to HTML system.
 * `Code` ( ` some text ` )
 * `Code Block` ( '\t' some text )
 * `List` ( * item )
+* <sup>new!</sup> Support code highlighting with 2 styles(C, C++)
+
+![code style](./img/code-style.png)
+
 
 ## ToDo
 
